@@ -1,0 +1,48 @@
+name: voiceops
+
+services:
+  backend:
+    image: ${BACKEND_IMAGE:?Set BACKEND_IMAGE in the deployment .env file}
+    env_file:
+      - .env.production
+    environment:
+      DJANGO_DEBUG: "False"
+      DB_HOST: host.docker.internal
+      DB_PORT: "5432"
+      VOICEOPS_DOCUMENT_STORAGE_BACKEND: filesystem
+      VOICEOPS_MEDIA_ROOT: /upload
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    # /upload is owned by stockuser:stockuser (UID/GID 1001) and mode 750.
+    # Keep the container non-root, but add its process to the stockuser group for read access.
+    group_add:
+      - "1001"
+    volumes:
+      - /upload:/upload:ro
+      - django_static:/app/staticfiles
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health/', timeout=4).read()"
+      interval: 30s
+      timeout: 6s
+      retries: 3
+      start_period: 25s
+
+  frontend:
+    image: ${FRONTEND_IMAGE:?Set FRONTEND_IMAGE in the deployment .env file}
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      # Only expose to the VM itself until host Nginx/HTTPS is configured.
+      - "127.0.0.1:8080:80"
+    volumes:
+      - django_static:/usr/share/nginx/html/django-static:ro
+    restart: unless-stopped
+
+volumes:
+  django_static:
