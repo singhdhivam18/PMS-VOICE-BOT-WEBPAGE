@@ -35,7 +35,7 @@ const resourceDefinitions = {
       { name: 'vehicle_id', label: 'Vehicle', type: 'select', optionsEndpoint: 'vehicles', optionLabel: 'registration_no', required: true },
       { name: 'due_maintenance_date', label: 'Maintenance due date', type: 'date', required: true },
       { name: 'maintenance_type', label: 'Maintenance type', type: 'select', options: [{ value: 'Regular Service', label: 'Regular Service' }, { value: 'Oil Change', label: 'Oil Change' }, { value: 'Repair', label: 'Repair' }, { value: 'Other', label: 'Other' }], required: true },
-      { name: 'service_status', label: 'Service status', required: true, maxLength: 20, defaultValue: 'DUE', disabledOnCreate: true },
+      { name: 'service_status', label: 'Service status', required: true, maxLength: 20, defaultValue: 'DUE', disabledOnCreate: true ,hideOnCreate:true},
       { name: 'call_attempts', label: 'Call attempts', type: 'number', required: true, min: 0, defaultValue: 0, hideOnCreate: true },
     ],
   },
