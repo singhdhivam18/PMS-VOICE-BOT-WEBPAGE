@@ -34,9 +34,9 @@ const resourceDefinitions = {
     fields: [
       { name: 'vehicle_id', label: 'Vehicle', type: 'select', optionsEndpoint: 'vehicles', optionLabel: 'registration_no', required: true },
       { name: 'due_maintenance_date', label: 'Maintenance due date', type: 'date', required: true },
-      { name: 'maintenance_type', label: 'Maintenance type', required: true, maxLength: 50, placeholder: 'e.g. Regular service' },
-      { name: 'service_status', label: 'Service status', required: true, maxLength: 20, defaultValue: 'DUE', placeholder: 'e.g. DUE' },
-      { name: 'call_attempts', label: 'Call attempts', type: 'number', required: true, min: 0, defaultValue: 0 },
+      { name: 'maintenance_type', label: 'Maintenance type', type: 'select', options: [{ value: 'Regular Service', label: 'Regular Service' }, { value: 'Oil Change', label: 'Oil Change' }, { value: 'Repair', label: 'Repair' }, { value: 'Other', label: 'Other' }], required: true },
+      { name: 'service_status', label: 'Service status', required: true, maxLength: 20, defaultValue: 'DUE', disabledOnCreate: true },
+      { name: 'call_attempts', label: 'Call attempts', type: 'number', required: true, min: 0, defaultValue: 0, hideOnCreate: true },
     ],
   },
   'call-jobs': {
@@ -237,6 +237,8 @@ export default function ResourcePage({ config }) {
     setSaving(true)
     const payload = {}
     for (const field of definition.fields) {
+      // Call attempts are intentionally omitted from create requests; Django supplies 0.
+      if (!editing && field.hideOnCreate) continue
       let value = formValues[field.name]
       if (field.type === 'checkbox') value = Boolean(value)
       else if (field.type === 'number' && value !== '') value = Number(value)
@@ -273,10 +275,10 @@ export default function ResourcePage({ config }) {
     <div className="resource-footnote"><ShieldCheck size={14} /><span>Changes are validated by Django and PostgreSQL constraints. Record deletion is not enabled in this starter.</span></div>
 
     {formOpen && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setFormOpen(false) }}><section className="form-modal" role="dialog" aria-modal="true" aria-labelledby="form-title"><div className="modal-header"><div><div className="eyebrow">{editing ? 'UPDATE RECORD' : 'NEW RECORD'}</div><h2 id="form-title">{editing ? `Edit ${definition.title.replace(/s$/, '')}` : `Add ${definition.title.replace(/s$/, '')}`}</h2><p>{editing ? 'Update the selected record details.' : 'Enter details to create a record in PostgreSQL.'}</p></div><button className="icon-button" onClick={() => setFormOpen(false)} aria-label="Close form"><X size={19} /></button></div>
-      <form className="record-form" onSubmit={submitForm}><div className="form-grid">{definition.fields.map((field) => <div key={field.name} className={`form-field ${field.type === 'checkbox' ? 'full-field checkbox-field' : ''}`}>
+      <form className="record-form" onSubmit={submitForm}><div className="form-grid">{definition.fields.filter((field) => !(field.hideOnCreate && !editing)).map((field) => <div key={field.name} className={`form-field ${field.type === 'checkbox' ? 'full-field checkbox-field' : ''}`}>
         {field.type === 'checkbox' ? <label className="checkbox-label"><input type="checkbox" checked={Boolean(formValues[field.name])} onChange={(e) => onFieldChange(field.name, e.target.checked)} /><span><strong>{field.label}</strong>{field.help && <small>{field.help}</small>}</span></label> : <>
           <label className="form-label" htmlFor={`field-${field.name}`}>{field.label}{field.required && <span className="required-mark"> *</span>}</label>
-          {field.type === 'select' ? <select id={`field-${field.name}`} className="text-input" value={formValues[field.name] ?? ''} required={field.required} onChange={(e) => onFieldChange(field.name, e.target.value)}><option value="">{field.allowEmpty ? (field.emptyLabel || 'None') : 'Select an option'}</option>{(field.options || (optionsByEndpoint[field.optionsEndpoint] || []).map((option) => ({ value: option.id, label: field.optionFormat ? field.optionFormat(option) : option[field.optionLabel] }))).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select> : <input id={`field-${field.name}`} className="text-input" type={field.type || 'text'} value={formValues[field.name] ?? ''} required={field.required} maxLength={field.maxLength} min={field.min} placeholder={field.placeholder || ''} onChange={(e) => onFieldChange(field.name, e.target.value)} />}
+          {field.type === 'select' ? <select id={`field-${field.name}`} className="text-input" value={formValues[field.name] ?? ''} required={field.required} disabled={!editing && field.disabledOnCreate} onChange={(e) => onFieldChange(field.name, e.target.value)}><option value="">{field.allowEmpty ? (field.emptyLabel || 'None') : 'Select an option'}</option>{(field.options || (optionsByEndpoint[field.optionsEndpoint] || []).map((option) => ({ value: option.id, label: field.optionFormat ? field.optionFormat(option) : option[field.optionLabel] }))).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select> : <input id={`field-${field.name}`} className="text-input" type={field.type || 'text'} value={formValues[field.name] ?? ''} required={field.required} disabled={!editing && field.disabledOnCreate} maxLength={field.maxLength} min={field.min} placeholder={field.placeholder || ''} onChange={(e) => onFieldChange(field.name, e.target.value)} />}
           {field.help && <small className="field-help">{field.help}</small>}
         </>}
       </div>)}</div>

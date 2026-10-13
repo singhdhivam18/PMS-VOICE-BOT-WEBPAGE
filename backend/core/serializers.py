@@ -60,6 +60,10 @@ class VehicleSerializer(TimestampUpdateMixin, serializers.ModelSerializer):
 class VehicleServiceSerializer(serializers.ModelSerializer):
     vehicle_id = serializers.PrimaryKeyRelatedField(source="vehicle", queryset=Vehicle.objects.all())
     vehicle_registration_no = serializers.CharField(source="vehicle.registration_no", read_only=True)
+    # The create form intentionally omits call_attempts; keep API creation backwards-compatible
+    # and initialize the existing database column to zero without a schema change.
+    call_attempts = serializers.IntegerField(required=False, default=0, min_value=0)
+
     class Meta:
         model = VehicleService
         fields = ["id", "external_id", "vehicle_id", "vehicle_registration_no", "due_maintenance_date",
